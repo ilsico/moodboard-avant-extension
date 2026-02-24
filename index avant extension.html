@@ -486,13 +486,23 @@ body.preview-mode #canvas-wrapper { position: fixed !important; inset: 0 !import
 }
 
 /* NOTE — déformable */
+
+.board-element[data-type="note"] {
+  min-width: 160px;
+  min-height: 50px;
+}
 .el-note {
   background: #fff; border-radius: 0;
   box-shadow: 0 3px 16px rgba(0,0,0,0.1); padding: 14px;
   border: 1px solid #eaeaf0;
   display: flex; flex-direction: column;
-  width: 100%; height: 100%; overflow: hidden;
-  min-width: 160px; min-height: 80px;
+  width: 100%; height: 100%;
+}
+.el-note textarea {
+  width: 100%; flex: 1; border: none; outline: none; resize: none;
+  font-family: 'HelveticaRoman', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-size: 14px; color: #2d2d2d;
+  background: transparent; line-height: 1.6;
 }
 .el-note textarea {
   width: 100%; flex: 1; border: none; outline: none; resize: none;
@@ -502,11 +512,15 @@ body.preview-mode #canvas-wrapper { position: fixed !important; inset: 0 !import
 }
 
 /* COULEUR — déformable */
+
+.board-element[data-type="color"] {
+  min-width: 153px; 
+  min-height: 127px;
+}
 .el-color {
   border-radius: 0; box-shadow: 0 3px 16px rgba(0,0,0,0.1);
   overflow: hidden; display: flex; flex-direction: column;
   width: 100%; height: 100%;
-  min-width: 80px; min-height: 80px;
 }
 .el-color .color-swatch { flex: 1; min-height: 40px; }
 .el-color .color-info { background: #fff; padding: 6px 10px; border-top: 1px solid rgba(0,0,0,0.06); flex-shrink: 0; display: flex; align-items: center; gap: 6px; }
