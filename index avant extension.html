@@ -422,11 +422,11 @@ body.preview-mode #canvas-wrapper { position: fixed !important; inset: 0 !import
   cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='22' height='22' viewBox='0 0 22 22'%3E%3Cpath d='M11 2v3M11 17v3M2 11h3M17 11h3' stroke='%23fff' stroke-width='2.5' stroke-linecap='round'/%3E%3Cpath d='M11 2v3M11 17v3M2 11h3M17 11h3' stroke='%23ff3c00' stroke-width='1.5' stroke-linecap='round'/%3E%3Ccircle cx='11' cy='11' r='3.5' fill='%23ff3c00' stroke='%23fff' stroke-width='1.2'/%3E%3Cpath d='M11 5l2 3h-4zM11 17l-2-3h4zM5 11l3-2v4zM17 11l-3 2v-4z' fill='%23ff3c00' stroke='%23fff' stroke-width='0.5'/%3E%3C/svg%3E") 11 11, move;
 }
 .board-element.selected {
-  outline: 1px solid #00FF0A; outline-offset: 0px;
+  outline: 1px solid #FF3C00; outline-offset: 0px;
   z-index: 1000 !important;
 }
 .board-element.multi-selected {
-  outline: 1px solid #00FF0A; outline-offset: 0px;
+  outline: 1px solid #FF3C00; outline-offset: 0px;
 }
 
 /* Toolbar flottante */
@@ -449,9 +449,9 @@ body.preview-mode #canvas-wrapper { position: fixed !important; inset: 0 !import
 /* Resize handle — carré visible 13×13, hitbox 26×26 via ::before */
 .resize-handle {
   position: absolute; bottom: -7px; right: -7px;
-  width: 14px; height: 14px; background: #00FF0A;
+  width: 14px; height: 14px; background: #FF3C00;
   border-radius: 0; cursor: se-resize; display: none; z-index: 20;
-  border: 2px solid #fff; box-shadow: 0 1px 4px rgba(0,255,10,0.5);
+  border: 2px solid #fff; 
   transform-origin: center center;
 }
 .resize-handle::before {
@@ -461,10 +461,19 @@ body.preview-mode #canvas-wrapper { position: fixed !important; inset: 0 !import
 }
 .board-element.selected .resize-handle { display: block; }
 
+/* Rectangle de sélection du groupe */
+#group-bounding-box {
+  position: absolute;
+  border: 1px solid #FF3C00;
+  pointer-events: none;
+  display: none;
+  z-index: 9000;
+}
+
 /* Handle de resize pour la multi-sélection — même logique */
 #multi-resize-handle {
-  position: absolute; width: 18px; height: 18px; background: #00FF0A;
-  border: 2px solid #fff; box-shadow: 0 1px 4px rgba(0,255,10,0.5);
+  position: absolute; width: 12px; height: 12px; background: #FF3C00;
+  border: 2px solid #FFF;
   cursor: se-resize; z-index: 9100; display: none;
   transform: translate(-50%, -50%);
 }
@@ -859,6 +868,8 @@ body.preview-mode #canvas-wrapper { position: fixed !important; inset: 0 !import
     <div id="selection-rect"></div>
     <!-- Handle de resize multi-sélection -->
     <div id="multi-resize-handle"></div>
+    <!-- Rectangle de sélection du groupe -->
+    <div id="group-bounding-box"></div>
     <!-- Toast zoom (vignette orange temporaire) -->
     <div id="zoom-toast"></div>
   </div>
@@ -1635,6 +1646,7 @@ const App = (() => {
     document.querySelectorAll('#canvas .resize-handle').forEach(h => {
       h.style.transform = `scale(${invScale})`;
     });
+    updateMultiResizeHandle();
   }
   let zoomToastTimer;
   function updateZoomDisplay() {
@@ -2510,24 +2522,45 @@ const App = (() => {
   // ── MULTI-RESIZE HANDLE ───────────────────────────────────────────────────
   function updateMultiResizeHandle() {
     const handle = document.getElementById('multi-resize-handle');
+    const bbox = document.getElementById('group-bounding-box');
     const group = [...multiSelected];
-    if (group.length < 2) { handle.style.display = 'none'; return; }
+    
+    if (group.length < 2) { 
+      handle.style.display = 'none'; 
+      if (bbox) bbox.style.display = 'none';
+      return; 
+    }
 
     // Calculer le bounding box global de tous les éléments sélectionnés
     const wrapperRect = document.getElementById('canvas-wrapper').getBoundingClientRect();
-    let maxR = -Infinity, maxB = -Infinity;
+    let minL = Infinity, minT = Infinity, maxR = -Infinity, maxB = -Infinity;
+    
     group.forEach(el => {
       const r = el.getBoundingClientRect();
+      const left   = r.left   - wrapperRect.left;
+      const top    = r.top    - wrapperRect.top;
       const right  = r.right  - wrapperRect.left;
       const bottom = r.bottom - wrapperRect.top;
+      
+      if (left   < minL) minL = left;
+      if (top    < minT) minT = top;
       if (right  > maxR) maxR = right;
       if (bottom > maxB) maxB = bottom;
     });
 
-    // Handle au coin bas-droite du bounding box global
+    // Placer la poignée en bas à droite
     handle.style.display = 'block';
     handle.style.left = maxR + 'px';
     handle.style.top  = maxB + 'px';
+
+    // Dessiner le cadre de sélection englobant tout le groupe
+    if (bbox) {
+      bbox.style.display = 'block';
+      bbox.style.left = minL + 'px';
+      bbox.style.top  = minT + 'px';
+      bbox.style.width = (maxR - minL) + 'px';
+      bbox.style.height = (maxB - minT) + 'px';
+    }
   }
 
   function setupMultiResizeHandle() {
@@ -2599,6 +2632,7 @@ const App = (() => {
           }
         });
         updateMultiResizeHandle();
+        group.forEach(el => updateConnectionsForEl(el));
       };
       const onUp = () => {
         window.removeEventListener('mousemove', onMove);
@@ -2650,6 +2684,7 @@ const App = (() => {
       if (['BUTTON','INPUT','SELECT','TEXTAREA','IFRAME'].includes(e.target.tagName)) return;
       if (e.target.isContentEditable) return;
       if (e.button !== 0) return;
+      if (el.dataset.justDragged) return;
       e.stopPropagation(); e.preventDefault();
 
       // Shift+clic = multi-sélection
@@ -2815,7 +2850,12 @@ const App = (() => {
         }
         window.removeEventListener('mousemove', onMove);
         window.removeEventListener('mouseup', onUp);
-        if (moved || duplicated) { pushHistory(); scheduleSave(); }
+        if (moved || duplicated) { 
+          pushHistory(); scheduleSave(); 
+          
+          dragEl.dataset.justDragged = "1";
+          setTimeout(() => delete dragEl.dataset.justDragged, 150);
+        }
       };
       window.addEventListener('mousemove', onMove);
       window.addEventListener('mouseup', onUp);
@@ -2825,6 +2865,7 @@ const App = (() => {
 
     el.addEventListener('click', e => {
       e.stopPropagation();
+      if (el.dataset.justDragged) return; // <-- C'EST ICI QU'IL FAUT L'AJOUTER
       if (!e.shiftKey) selectEl(el);
     });
 
@@ -2979,7 +3020,7 @@ const App = (() => {
         clearSnapGuides();
       }
     };
-    const onUp = () => {
+   const onUp = () => {
       groupDragActive = false;
       if (groupRafId) { cancelAnimationFrame(groupRafId); groupRafId = null; }
       // Appliquer la position finale exacte
@@ -2990,10 +3031,18 @@ const App = (() => {
         el.style.top  = (s.top  + targetDY) + 'px';
       });
       activeGroup.forEach(el => updateConnectionsForEl(el));
+      
+      updateMultiResizeHandle();
+
       window.removeEventListener('mousemove', onMove);
       window.removeEventListener('mouseup', onUp);
       clearSnapGuides();
-      if (moved || duplicated) { pushHistory(); scheduleSave(); }
+      if (moved || duplicated) { 
+        pushHistory(); scheduleSave(); 
+        
+        activeGroup.forEach(el => el.dataset.justDragged = "1");
+        setTimeout(() => activeGroup.forEach(el => delete el.dataset.justDragged), 150);
+      }
     };
     window.addEventListener('mousemove', onMove);
     window.addEventListener('mouseup', onUp);
@@ -3081,6 +3130,8 @@ const App = (() => {
         cap.style.top   = (parseFloat(resizeEl.style.top) + resizeEl.offsetHeight) + 'px';
       });
     }
+    // Mettre à jour les connecteurs en temps réel
+    updateConnectionsForEl(resizeEl);
   }
 
   // ── RESTORE ──────────────────────────────────────────────────────────────
