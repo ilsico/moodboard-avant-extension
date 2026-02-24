@@ -2412,84 +2412,6 @@ const App = (() => {
       });
     });
 
-    // --- Espacement égal (distribution) ---
-    // Pour chaque paire d'éléments immobiles, calculer l'écart et proposer
-    // une position qui reproduit ce même écart à gauche ou à droite (ou haut/bas)
-    if (others.length >= 2) {
-      const rects = others.map(getRect);
-      // Axe horizontal
-      for (let i = 0; i < rects.length; i++) {
-        for (let j = i+1; j < rects.length; j++) {
-          const a = rects[i], b = rects[j];
-          // Gap entre a.r et b.l (a à gauche de b)
-          if (a.r <= b.l) {
-            const gap = b.l - a.r;
-            // Proposer drag à droite de b avec même gap : dragRect.l = b.r + gap
-            const targetL = b.r + gap;
-            const d = targetL - dragRect.l;
-            if (Math.abs(d) < T) {
-              if (dx === null || Math.abs(d) < Math.abs(dx)) dx = d;
-              guidesV.push(targetL);
-            }
-            // Proposer drag à gauche de a avec même gap : dragRect.r = a.l - gap
-            const targetR = a.l - gap;
-            const d2 = targetR - dragRect.r;
-            if (Math.abs(d2) < T) {
-              if (dx === null || Math.abs(d2) < Math.abs(dx)) dx = d2;
-              guidesV.push(targetR);
-            }
-          }
-          // Gap entre b.r et a.l (b à gauche de a)
-          if (b.r <= a.l) {
-            const gap = a.l - b.r;
-            const targetL = a.r + gap;
-            const d = targetL - dragRect.l;
-            if (Math.abs(d) < T) {
-              if (dx === null || Math.abs(d) < Math.abs(dx)) dx = d;
-              guidesV.push(targetL);
-            }
-            const targetR = b.l - gap;
-            const d2 = targetR - dragRect.r;
-            if (Math.abs(d2) < T) {
-              if (dx === null || Math.abs(d2) < Math.abs(dx)) dx = d2;
-              guidesV.push(targetR);
-            }
-          }
-          // Axe vertical
-          if (a.b <= b.t) {
-            const gap = b.t - a.b;
-            const targetT = b.b + gap;
-            const d = targetT - dragRect.t;
-            if (Math.abs(d) < T) {
-              if (dy === null || Math.abs(d) < Math.abs(dy)) dy = d;
-              guidesH.push(targetT);
-            }
-            const targetB = a.t - gap;
-            const d2 = targetB - dragRect.b;
-            if (Math.abs(d2) < T) {
-              if (dy === null || Math.abs(d2) < Math.abs(dy)) dy = d2;
-              guidesH.push(targetB);
-            }
-          }
-          if (b.b <= a.t) {
-            const gap = a.t - b.b;
-            const targetT = a.b + gap;
-            const d = targetT - dragRect.t;
-            if (Math.abs(d) < T) {
-              if (dy === null || Math.abs(d) < Math.abs(dy)) dy = d;
-              guidesH.push(targetT);
-            }
-            const targetB = b.t - gap;
-            const d2 = targetB - dragRect.b;
-            if (Math.abs(d2) < T) {
-              if (dy === null || Math.abs(d2) < Math.abs(dy)) dy = d2;
-              guidesH.push(targetB);
-            }
-          }
-        }
-      }
-    }
-
     // Dédupliquer les guides (arrondi au pixel entier) et ne garder que ceux
     // alignés avec le snap effectif (dx/dy), pour éviter les lignes en double.
     const finalDx = dx || 0;
@@ -2504,6 +2426,7 @@ const App = (() => {
           Math.abs(v - Math.round(dragRect.t + finalDy)) < 2 ||
           Math.abs(v - Math.round(dragRect.b + finalDy)) < 2)
       : [];
+      
     return { dx: finalDx, dy: finalDy, guidesH: finalGuidesH, guidesV: finalGuidesV };
   }
 
